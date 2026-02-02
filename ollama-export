@@ -1,0 +1,37 @@
+#!/bin/bash
+
+model=$1
+name=$(awk -F : '{print $1}' <<<$model)
+tag=$(awk -F : '{print $2}' <<<$model)
+
+if [ -z "$name" -o -z "$tag" ]; then
+  echo "Usage: ollama-export <name:tag>" >&2
+  echo "The archive is sent to stdout." >&2
+  exit 1
+fi
+
+set -e
+
+models_dir=/usr/share/ollama/.ollama/models
+
+if [[ $name =~ / ]]; then
+  manifest=manifests/registry.ollama.ai/$name/$tag
+else
+  manifest=manifests/registry.ollama.ai/library/$name/$tag
+fi
+manifest_full=$models_dir/$manifest
+if ! ls $manifest_full >&2; then
+  echo "cannot read manifest $manifest_full" >&2
+  exit 1
+fi
+
+{
+  echo $manifest
+  echo blobs/$(jq -r .config.digest $manifest_full | sed 's|:|-|g')
+  
+  while read fname; do
+    echo blobs/$fname
+  done < <(jq -r .layers[].digest $manifest_full | sed 's|:|-|g')
+} | tar cvf - -C $models_dir --files-from -
+
+

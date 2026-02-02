@@ -1,0 +1,15 @@
+#!/bin/bash
+
+tarball=$1
+if [ "$tarball" = --help -o "$tarball" = -h ]; then
+  echo "usage: ollama-import <tarball>" >&2
+  exit 1
+fi
+
+if [ -z "$tarball" ]; then
+  echo "INFO: using stdin as source" >&2
+  tarball=-
+fi
+
+models_dir=/usr/share/ollama/.ollama/models
+tar xf "$tarball" -C $models_dir
